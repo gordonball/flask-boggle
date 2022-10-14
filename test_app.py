@@ -2,6 +2,8 @@ from unittest import TestCase
 
 from app import app, games
 
+import json
+
 # Make Flask errors be real errors, not HTML pages with error info
 app.config['TESTING'] = True
 
@@ -23,12 +25,40 @@ class BoggleAppTestCase(TestCase):
 
         with self.client as client:
             response = client.get('/')
-            ...
-            # test that you're getting a template
+            html = response.get_data(as_text=True)
+            self.assertEqual(response.status_code, 200)
+            self.assertIn('<table class="board">', html)
+            self.assertIn('<table', html)
+            self.assertIn('Homepage Template - used in test', html)
+
 
     def test_api_new_game(self):
         """Test starting a new game."""
 
         with self.client as client:
-            ...
-            # write a test for this route
+            response = client.post('/api/new-game')
+            json_resp = response.get_data(as_text=True)
+            # response.get_json
+
+            obj = json.loads(json_resp)
+            board = obj["board"]
+            self.assertEqual(len(board), 5)
+            self.assertIn("board", json_resp)
+            self.assertIn("gameId", json_resp)
+            # more specific tests (inner contents of board)
+            # game id in games dictionary?
+
+    def test_api_score_word(self):
+        """Test if word is not in word list and not on board"""
+
+        with self.client as client:
+            response = client.post('/api/new-game')
+            json_resp = response.get_data(as_text=True)
+
+            obj = json.loads(json_resp)
+            id = obj["gameId"]
+            game = games[id]
+
+            self.assertFalse(game.is_word_in_word_list("AIESFIPGWGIP"))
+            self.assertFalse(game.check_word_on_board("ASDFAWEGAWEG"))
+            # test randomized board
