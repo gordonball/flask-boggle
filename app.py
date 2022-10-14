@@ -11,32 +11,6 @@ app.config["SECRET_KEY"] = "this-is-secret"
 # The boggle games created, keyed by game id
 games = {}
 
-
-@app.post("/api/score-word")
-def score_word():
-    """ Checks if word is on list and on board
-
-        >>> wl = WordList("dictionary.txt")
-        >>> g = BoggleGame(wl)
-        >>> g.check_word_on_board("QUEST")
-        False
-    """
-    # docstring
-    word = request.json["word"]
-    game_id = request.json["gameId"]
-    game = games[game_id]
-
-    word_in_list = game.is_word_in_word_list(word)
-    word_in_board =  game.check_word_on_board(word)
-
-    if word_in_list and word_in_board:
-        return jsonify({"result": "ok"})
-    elif not word_in_list:
-        return jsonify({"result": "not-word"})
-    elif not word_in_board:
-        return jsonify({"result": "not-on-board"})
-
-
 @app.get("/")
 def homepage():
     """Show board.
@@ -57,3 +31,22 @@ def new_game():
     games[game_id] = game
 
     return {"gameId": game_id, "board": game.board}
+
+@app.post("/api/score-word")
+def score_word():
+    """ Checks if word is on list and on board
+    """
+
+    word = request.json["word"]
+    game_id = request.json["gameId"]
+    game = games[game_id]
+
+    word_in_list = game.is_word_in_word_list(word)
+    word_in_board =  game.check_word_on_board(word)
+
+    if word_in_list and word_in_board:
+        return jsonify({"result": "ok"})
+    elif not word_in_list:
+        return jsonify({"result": "not-word"})
+    elif not word_in_board:
+        return jsonify({"result": "not-on-board"})

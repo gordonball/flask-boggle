@@ -2,7 +2,9 @@ from unittest import TestCase
 
 from app import app, games
 
-import json
+from boggle import DEFAULT_LETTERS_BY_FREQ
+
+from wordlist import WordList
 
 # Make Flask errors be real errors, not HTML pages with error info
 app.config['TESTING'] = True
@@ -37,28 +39,63 @@ class BoggleAppTestCase(TestCase):
 
         with self.client as client:
             response = client.post('/api/new-game')
-            json_resp = response.get_data(as_text=True)
-            # response.get_json
+            obj = response.get_json()
 
-            obj = json.loads(json_resp)
             board = obj["board"]
+            game_id = obj["gameId"]
             self.assertEqual(len(board), 5)
-            self.assertIn("board", json_resp)
-            self.assertIn("gameId", json_resp)
+            self.assertIn("board", obj)
+            self.assertIn("gameId", obj)
+
             # more specific tests (inner contents of board)
+            all_cells_are_letters = True
+            for i in range(len(board)):
+                for j in range(len(board[i])):
+                    if not board[i][j] in DEFAULT_LETTERS_BY_FREQ:
+                        all_cells_are_letters = False
+
+            self.assertTrue(all_cells_are_letters)
+
             # game id in games dictionary?
+            self.assertIn(game_id, games)
 
     def test_api_score_word(self):
         """Test if word is not in word list and not on board"""
 
         with self.client as client:
-            response = client.post('/api/new-game')
-            json_resp = response.get_data(as_text=True)
+            response1 = client.post('/api/new-game')
+            json_game = response1.get_json()
+            game_id1 = json_game["gameId"]
 
-            obj = json.loads(json_resp)
-            id = obj["gameId"]
-            game = games[id]
+            # get the board and fill with all A's
+            game = games[game_id1]
+            game.board = [
+                ["C", "A", "T", "D", "O"],
+                ["C", "A", "T", "D", "O"],
+                ["C", "A", "T", "D", "O"],
+                ["C", "A", "T", "D", "O"],
+                ["C", "A", "T", "D", "O"],
+            ]
+            game.word_list = WordList("test_dictionary.txt")
 
-            self.assertFalse(game.is_word_in_word_list("AIESFIPGWGIP"))
-            self.assertFalse(game.check_word_on_board("ASDFAWEGAWEG"))
-            # test randomized board
+            response2 = client.post(
+                "/api/score-word", 
+                data = {'gameId': game_id1, "word": "CAT"}
+                )
+
+            result = response2.get_json()
+
+            ok = result.get("result")
+
+            self.asssertTrue(ok, True)
+
+
+            
+
+            # obj = json.loads(json_resp)
+            # id = obj["gameId"]
+            # game = games[id]
+
+            # self.assertFalse(game.is_word_in_word_list("AIESFIPGWGIP"))
+            # self.assertFalse(game.check_word_on_board("ASDFAWEGAWEG"))
+            # # test randomized board
